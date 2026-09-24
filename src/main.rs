@@ -50,7 +50,11 @@ use std::{
 use anyhow::{Context, Result as AnyhowResult};
 use serde_json::from_str as parse_from_json_str;
 
-use crate::{cli::build_cli, parsing::JiraTicketDetails, util::run_command};
+use crate::{
+	cli::build_cli,
+	parsing::{JiraTicketDetails, JiraTicketDetailsIssueLink},
+	util::run_command,
+};
 
 #[derive(Debug)]
 struct JiraTicket {
@@ -148,9 +152,7 @@ fn visit_jira_ticket(
 				r#type: issue_link.r#type.outward.clone(),
 			});
 
-			if follow_link_types.contains(&issue_link.r#type.outward.trim())
-				|| follow_link_types.contains(&issue_link.r#type.inward.trim())
-			{
+			if should_visit_link(follow_link_types, issue_link) {
 				jira_tickets_to_visit.push(outward_issue.key.as_str());
 			}
 		} else if let Some(inward_issue) = &issue_link.inward_issue {
@@ -160,9 +162,7 @@ fn visit_jira_ticket(
 				r#type: issue_link.r#type.outward.clone(),
 			});
 
-			if follow_link_types.contains(&issue_link.r#type.outward.trim())
-				|| follow_link_types.contains(&issue_link.r#type.inward.trim())
-			{
+			if should_visit_link(follow_link_types, issue_link) {
 				jira_tickets_to_visit.push(inward_issue.key.as_str());
 			}
 		}
@@ -179,6 +179,11 @@ fn visit_jira_ticket(
 	}
 
 	Ok(())
+}
+
+fn should_visit_link(follow_link_types: &[&str], issue_link: &JiraTicketDetailsIssueLink) -> bool {
+	follow_link_types.contains(&issue_link.r#type.outward.trim())
+		|| follow_link_types.contains(&issue_link.r#type.inward.trim())
 }
 
 fn run_jira_ticket_fetch(jira_ticket: &str) -> AnyhowResult<String> {
