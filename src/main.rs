@@ -38,6 +38,7 @@
 
 // Modules
 mod cli;
+mod parsing;
 mod util;
 
 // Uses
@@ -47,46 +48,9 @@ use std::{
 };
 
 use anyhow::{Context, Result as AnyhowResult};
-use serde::Deserialize;
 use serde_json::from_str as parse_from_json_str;
 
-use crate::{cli::build_cli, util::run_command};
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct JiraTicketDetails {
-	key:    String,
-	fields: JiraTicketDetailsFields,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct JiraTicketDetailsFields {
-	summary:     String,
-	#[serde(rename = "issuelinks")]
-	issue_links: Vec<JiraTicketDetailsIssueLink>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct JiraTicketDetailsIssueLink {
-	inward_issue:  Option<JiraTicketDetailsIssueLinkIssue>,
-	outward_issue: Option<JiraTicketDetailsIssueLinkIssue>,
-	r#type:        JiraTicketDetailsIssueLinkType,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct JiraTicketDetailsIssueLinkIssue {
-	key: String,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct JiraTicketDetailsIssueLinkType {
-	inward:  String,
-	outward: String,
-}
+use crate::{cli::build_cli, parsing::JiraTicketDetails, util::run_command};
 
 #[derive(Debug)]
 struct JiraTicket {
