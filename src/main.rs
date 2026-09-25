@@ -82,6 +82,7 @@ struct JiraTicketRelationship {
 
 // Entry Point
 fn main() -> AnyhowResult<()> {
+	// Parse the CLI arguments
 	let cli_definition = build_cli();
 	let matches = cli_definition.get_matches();
 
@@ -102,6 +103,7 @@ fn main() -> AnyhowResult<()> {
 		.map(|s| s.trim())
 		.collect::<Vec<_>>();
 
+	// Crawl the tickets
 	let mut jira_tickets = HashMap::new();
 	let mut relationships = HashSet::new();
 
@@ -114,6 +116,28 @@ fn main() -> AnyhowResult<()> {
 		)?;
 	}
 
+	// Find all referenced tickets that we don't have information for, visit them,
+	// and add them to the full ticket set
+	let missing_referenced_tickets = relationships
+		.iter()
+		.flat_map(|relationship| [&relationship.a, &relationship.b])
+		.collect::<HashSet<_>>()
+		.difference(&jira_tickets.keys().collect())
+		.map(|&key| key.clone())
+		.collect::<Vec<_>>();
+
+	for missing_referenced_ticket in missing_referenced_tickets {
+		eprintln!("Retrieving information for {missing_referenced_ticket}...");
+
+		let jira_ticket_details = run_jira_ticket_fetch(missing_referenced_ticket.as_str())?;
+
+		jira_tickets.insert(
+			missing_referenced_ticket,
+			JiraTicket::from(&jira_ticket_details),
+		);
+	}
+
+	// Output the result
 	print_plantuml(
 		&jira_tickets,
 		&relationships,
@@ -137,12 +161,9 @@ fn visit_jira_ticket(
 		return Ok(());
 	}
 
-	eprintln!("Visiting {jira_ticket}...");
+	eprintln!("Crawling {jira_ticket}...");
 
-	let jira_ticket_details_json = run_jira_ticket_fetch(jira_ticket)?;
-	let jira_ticket_details =
-		parse_from_json_str::<JiraTicketDetails>(jira_ticket_details_json.as_str())
-			.with_context(|| "deserialising from JSON failed")?;
+	let jira_ticket_details = run_jira_ticket_fetch(jira_ticket)?;
 
 	// Store the ticket in the visited set
 	jira_tickets.insert(
@@ -199,13 +220,17 @@ fn should_visit_link_type(follow_link_types: &[&str], issue_link_type: &str) -> 
 	follow_link_types.contains(&issue_link_type.trim())
 }
 
-fn run_jira_ticket_fetch(jira_ticket: &str) -> AnyhowResult<String> {
+fn run_jira_ticket_fetch(jira_ticket: &str) -> AnyhowResult<JiraTicketDetails> {
 	let mut jira_cli_command = Command::new("jira");
 	jira_cli_command
 		.args(["issue", "view", "--raw"])
 		.arg(jira_ticket);
 
 	// Run the command
-	run_command(jira_cli_command)
-		.with_context(|| format!("unable to get ticket details for {jira_ticket}"))
+	let jira_ticket_json = run_command(jira_cli_command)
+		.with_context(|| format!("unable to get ticket details for {jira_ticket}"))?;
+
+	// Parse the output
+	parse_from_json_str::<JiraTicketDetails>(jira_ticket_json.as_str())
+		.with_context(|| "deserialising from JSON failed")
 }
