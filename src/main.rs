@@ -38,6 +38,7 @@
 
 // Modules
 mod cli;
+mod graph;
 mod parsing;
 mod util;
 
@@ -52,6 +53,7 @@ use serde_json::from_str as parse_from_json_str;
 
 use crate::{
 	cli::build_cli,
+	graph::print_plantuml,
 	parsing::{JiraTicketDetails, JiraTicketDetailsIssueLink},
 	util::run_command,
 };
@@ -87,6 +89,9 @@ fn main() -> AnyhowResult<()> {
 		.get_many::<String>("starting-jira-ticket")
 		.expect("Clap ensures at least one argument is provided")
 		.collect::<Vec<_>>();
+	let url_prefix = matches
+		.get_one::<String>("url-prefix")
+		.expect("Clap ensures the argument is provided");
 	let follow_link_types = matches
 		.get_many::<String>("follow-link-types")
 		.expect("Clap provides a default value")
@@ -109,8 +114,12 @@ fn main() -> AnyhowResult<()> {
 		)?;
 	}
 
-	dbg!(&jira_tickets);
-	dbg!(&relationships);
+	print_plantuml(
+		&jira_tickets,
+		&relationships,
+		url_prefix.as_str(),
+		follow_link_types_ref.as_slice(),
+	);
 
 	Ok(())
 }
@@ -149,7 +158,7 @@ fn visit_jira_ticket(
 			relationships.insert(JiraTicketRelationship {
 				a:      jira_ticket.to_owned(),
 				b:      outward_issue.key.clone(),
-				r#type: issue_link.r#type.outward.clone(),
+				r#type: issue_link.r#type.outward.trim().to_owned(),
 			});
 
 			if should_visit_link(follow_link_types, issue_link) {
@@ -159,7 +168,7 @@ fn visit_jira_ticket(
 			relationships.insert(JiraTicketRelationship {
 				a:      inward_issue.key.clone(),
 				b:      jira_ticket.to_owned(),
-				r#type: issue_link.r#type.outward.clone(),
+				r#type: issue_link.r#type.outward.trim().to_owned(),
 			});
 
 			if should_visit_link(follow_link_types, issue_link) {
@@ -182,8 +191,12 @@ fn visit_jira_ticket(
 }
 
 fn should_visit_link(follow_link_types: &[&str], issue_link: &JiraTicketDetailsIssueLink) -> bool {
-	follow_link_types.contains(&issue_link.r#type.outward.trim())
-		|| follow_link_types.contains(&issue_link.r#type.inward.trim())
+	should_visit_link_type(follow_link_types, issue_link.r#type.outward.as_str())
+		|| should_visit_link_type(follow_link_types, issue_link.r#type.inward.as_str())
+}
+
+fn should_visit_link_type(follow_link_types: &[&str], issue_link_type: &str) -> bool {
+	follow_link_types.contains(&issue_link_type.trim())
 }
 
 fn run_jira_ticket_fetch(jira_ticket: &str) -> AnyhowResult<String> {
