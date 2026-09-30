@@ -40,7 +40,6 @@ pub fn build_cli() -> Command {
 				.num_args(1)
 				.action(ArgAction::Set)
 				.value_name("PREFIX")
-				.required(true)
 				.help(
 					"The prefix to apply to Jira tickets in the output to turn each ticket into a \
 					 full URL.",

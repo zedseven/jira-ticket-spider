@@ -11,7 +11,7 @@ use crate::{
 pub fn print_plantuml(
 	jira_tickets: &HashMap<String, JiraTicket>,
 	relationships: &HashSet<JiraTicketRelationship>,
-	url_prefix: &str,
+	url_prefix: Option<&str>,
 	follow_link_types: &[&str],
 ) {
 	let jira_tickets_sorted = sorted_vec_from_iterator(jira_tickets.iter(), |(x, _), (y, _)| {
@@ -41,11 +41,19 @@ pub fn print_plantuml(
 	println!("' Tickets");
 
 	for (key, details) in jira_tickets_sorted {
-		println!(
-			"component \"[[{url_prefix}{key} {key}]]: {}\" as {}",
-			details.summary,
-			escape_key(key)
-		);
+		if let Some(url_prefix) = url_prefix {
+			println!(
+				"component \"[[{url_prefix}{key} {key}]]: {}\" as {}",
+				details.summary,
+				escape_key(key)
+			);
+		} else {
+			println!(
+				"component \"{key}: {}\" as {}",
+				details.summary,
+				escape_key(key)
+			);
+		}
 	}
 
 	println!();

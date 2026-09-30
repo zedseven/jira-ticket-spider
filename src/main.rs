@@ -90,9 +90,7 @@ fn main() -> AnyhowResult<()> {
 		.get_many::<String>("starting-jira-ticket")
 		.expect("Clap ensures at least one argument is provided")
 		.collect::<Vec<_>>();
-	let url_prefix = matches
-		.get_one::<String>("url-prefix")
-		.expect("Clap ensures the argument is provided");
+	let url_prefix = matches.get_one::<String>("url-prefix");
 	let follow_link_types = matches
 		.get_many::<String>("follow-link-types")
 		.expect("Clap provides a default value")
@@ -141,7 +139,7 @@ fn main() -> AnyhowResult<()> {
 	print_plantuml(
 		&jira_tickets,
 		&relationships,
-		url_prefix.as_str(),
+		url_prefix.map(String::as_str),
 		follow_link_types_ref.as_slice(),
 	);
 
