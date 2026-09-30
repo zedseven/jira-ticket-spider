@@ -113,6 +113,7 @@ fn main() -> AnyhowResult<()> {
 			&mut relationships,
 			follow_link_types_ref.as_slice(),
 			starting_jira_ticket.as_str(),
+			true,
 		)?;
 	}
 
@@ -127,14 +128,15 @@ fn main() -> AnyhowResult<()> {
 		.collect::<Vec<_>>();
 
 	for missing_referenced_ticket in missing_referenced_tickets {
-		eprintln!("Retrieving information for {missing_referenced_ticket}...");
-
 		let jira_ticket_details = run_jira_ticket_fetch(missing_referenced_ticket.as_str())?;
 
-		jira_tickets.insert(
-			missing_referenced_ticket,
-			JiraTicket::from(&jira_ticket_details),
-		);
+		visit_jira_ticket(
+			&mut jira_tickets,
+			&mut relationships,
+			follow_link_types_ref.as_slice(),
+			missing_referenced_ticket.as_str(),
+			false,
+		)?;
 	}
 
 	// Output the result
@@ -153,6 +155,7 @@ fn visit_jira_ticket(
 	relationships: &mut HashSet<JiraTicketRelationship>,
 	follow_link_types: &[&str],
 	jira_ticket: &str,
+	follow_links: bool,
 ) -> AnyhowResult<()> {
 	// Visit the ticket if it's new
 	let jira_ticket = jira_ticket.trim();
@@ -161,7 +164,11 @@ fn visit_jira_ticket(
 		return Ok(());
 	}
 
-	eprintln!("Crawling {jira_ticket}...");
+	if follow_links {
+		eprintln!("Crawling {jira_ticket}...");
+	} else {
+		eprintln!("Retrieving information for {jira_ticket}...");
+	}
 
 	let jira_ticket_details = run_jira_ticket_fetch(jira_ticket)?;
 
@@ -182,7 +189,7 @@ fn visit_jira_ticket(
 				r#type: issue_link.r#type.outward.trim().to_owned(),
 			});
 
-			if should_visit_link(follow_link_types, issue_link) {
+			if follow_links && should_visit_link(follow_link_types, issue_link) {
 				jira_tickets_to_visit.push(outward_issue.key.as_str());
 			}
 		} else if let Some(inward_issue) = &issue_link.inward_issue {
@@ -192,7 +199,7 @@ fn visit_jira_ticket(
 				r#type: issue_link.r#type.outward.trim().to_owned(),
 			});
 
-			if should_visit_link(follow_link_types, issue_link) {
+			if follow_links && should_visit_link(follow_link_types, issue_link) {
 				jira_tickets_to_visit.push(inward_issue.key.as_str());
 			}
 		}
@@ -205,6 +212,7 @@ fn visit_jira_ticket(
 			relationships,
 			follow_link_types,
 			jira_ticket_to_visit,
+			follow_links,
 		)?;
 	}
 
