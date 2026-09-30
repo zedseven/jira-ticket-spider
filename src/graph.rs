@@ -63,13 +63,13 @@ pub fn print_plantuml(
 		if let Some(url_prefix) = url_prefix {
 			println!(
 				"component \"[[{url_prefix}{key} {key}]]: {}\" as {}",
-				details.summary,
+				escape_summary(details.summary.as_str()),
 				escape_key(key)
 			);
 		} else {
 			println!(
 				"component \"{key}: {}\" as {}",
-				details.summary,
+				escape_summary(details.summary.as_str()),
 				escape_key(key)
 			);
 		}
@@ -100,4 +100,10 @@ pub fn print_plantuml(
 
 fn escape_key(key: &str) -> String {
 	key.replace('-', "_")
+}
+
+fn escape_summary(summary: &str) -> String {
+	const ESCAPED_QUOTE: &str = "<U+0022>";
+
+	summary.replace('"', ESCAPED_QUOTE)
 }
