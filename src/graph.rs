@@ -1,7 +1,12 @@
 // Uses
 use std::collections::{HashMap, HashSet};
 
-use crate::{JiraTicket, JiraTicketRelationship, should_visit_link_type};
+use crate::{
+	JiraTicket,
+	JiraTicketRelationship,
+	should_visit_link_type,
+	util::{sortable_jira_ticket, sorted_vec_from_iterator},
+};
 
 pub fn print_plantuml(
 	jira_tickets: &HashMap<String, JiraTicket>,
@@ -9,6 +14,24 @@ pub fn print_plantuml(
 	url_prefix: &str,
 	follow_link_types: &[&str],
 ) {
+	let jira_tickets_sorted = sorted_vec_from_iterator(jira_tickets.iter(), |(x, _), (y, _)| {
+		let x_clean = sortable_jira_ticket(x.as_str());
+		let y_clean = sortable_jira_ticket(y.as_str());
+
+		x_clean.cmp(&y_clean)
+	});
+	let relationships_sorted = sorted_vec_from_iterator(relationships.iter(), |x, y| {
+		let x_clean = sortable_jira_ticket(x.a.as_str());
+		let y_clean = sortable_jira_ticket(y.a.as_str());
+
+		x_clean.cmp(&y_clean).then_with(|| {
+			let x_clean = sortable_jira_ticket(x.b.as_str());
+			let y_clean = sortable_jira_ticket(y.b.as_str());
+
+			x_clean.cmp(&y_clean)
+		})
+	});
+
 	println!("@startuml");
 	println!();
 	println!("skinparam maxMessageSize 200");
@@ -17,7 +40,7 @@ pub fn print_plantuml(
 	println!();
 	println!("' Tickets");
 
-	for (key, details) in jira_tickets {
+	for (key, details) in jira_tickets_sorted {
 		println!(
 			"component \"[[{url_prefix}{key} {key}]]: {}\" as {}",
 			details.summary,
@@ -28,7 +51,7 @@ pub fn print_plantuml(
 	println!();
 	println!("' Relationships");
 
-	for relationship in relationships {
+	for relationship in relationships_sorted {
 		let arrow_type = if should_visit_link_type(follow_link_types, relationship.r#type.as_str())
 		{
 			"-->"
