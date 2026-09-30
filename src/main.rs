@@ -63,10 +63,10 @@ struct JiraTicket {
 	summary: String,
 }
 
-impl From<&JiraTicketDetails> for JiraTicket {
-	fn from(jira_ticket_details: &JiraTicketDetails) -> Self {
+impl From<&JiraTicketDetails<'_>> for JiraTicket {
+	fn from(jira_ticket_details: &JiraTicketDetails<'_>) -> Self {
 		Self {
-			summary: jira_ticket_details.fields.summary.clone(),
+			summary: jira_ticket_details.fields.summary.to_owned(),
 		}
 	}
 }
@@ -125,7 +125,10 @@ fn main() -> AnyhowResult<()> {
 	for missing_referenced_ticket in missing_referenced_tickets {
 		eprintln!("Retrieving information for {missing_referenced_ticket}...");
 
-		let jira_ticket_details = run_jira_ticket_fetch(missing_referenced_ticket.as_str())?;
+		let jira_ticket_json = run_jira_ticket_fetch(missing_referenced_ticket.as_str())?;
+		let jira_ticket_details =
+			parse_from_json_str::<JiraTicketDetails>(jira_ticket_json.as_str())
+				.with_context(|| "deserialising from JSON failed")?;
 
 		jira_tickets.insert(
 			missing_referenced_ticket,
@@ -160,7 +163,10 @@ fn visit_jira_ticket(
 
 	eprintln!("Crawling {jira_ticket}...");
 
-	let jira_ticket_details = run_jira_ticket_fetch(jira_ticket)?;
+	// Fetch and parse the details
+	let jira_ticket_json = run_jira_ticket_fetch(jira_ticket)?;
+	let jira_ticket_details = parse_from_json_str::<JiraTicketDetails>(jira_ticket_json.as_str())
+		.with_context(|| "deserialising from JSON failed")?;
 
 	// Store the ticket in the visited set
 	jira_tickets.insert(
@@ -175,22 +181,22 @@ fn visit_jira_ticket(
 		if let Some(outward_issue) = &issue_link.outward_issue {
 			relationships.insert(JiraTicketRelationship {
 				a:      jira_ticket.to_owned(),
-				b:      outward_issue.key.clone(),
+				b:      outward_issue.key.to_owned(),
 				r#type: issue_link.r#type.outward.trim().to_owned(),
 			});
 
 			if should_visit_link(follow_link_types, issue_link) {
-				jira_tickets_to_visit.push(outward_issue.key.as_str());
+				jira_tickets_to_visit.push(outward_issue.key);
 			}
 		} else if let Some(inward_issue) = &issue_link.inward_issue {
 			relationships.insert(JiraTicketRelationship {
-				a:      inward_issue.key.clone(),
+				a:      inward_issue.key.to_owned(),
 				b:      jira_ticket.to_owned(),
 				r#type: issue_link.r#type.outward.trim().to_owned(),
 			});
 
 			if should_visit_link(follow_link_types, issue_link) {
-				jira_tickets_to_visit.push(inward_issue.key.as_str());
+				jira_tickets_to_visit.push(inward_issue.key);
 			}
 		}
 	}
@@ -209,25 +215,20 @@ fn visit_jira_ticket(
 }
 
 fn should_visit_link(follow_link_types: &[&str], issue_link: &JiraTicketDetailsIssueLink) -> bool {
-	should_visit_link_type(follow_link_types, issue_link.r#type.outward.as_str())
-		|| should_visit_link_type(follow_link_types, issue_link.r#type.inward.as_str())
+	should_visit_link_type(follow_link_types, issue_link.r#type.outward)
+		|| should_visit_link_type(follow_link_types, issue_link.r#type.inward)
 }
 
 fn should_visit_link_type(follow_link_types: &[&str], issue_link_type: &str) -> bool {
 	follow_link_types.contains(&issue_link_type.trim())
 }
 
-fn run_jira_ticket_fetch(jira_ticket: &str) -> AnyhowResult<JiraTicketDetails> {
+fn run_jira_ticket_fetch(jira_ticket: &str) -> AnyhowResult<String> {
 	let mut jira_cli_command = Command::new("jira");
 	jira_cli_command
 		.args(["issue", "view", "--raw"])
 		.arg(jira_ticket);
 
-	// Run the command
-	let jira_ticket_json = run_command(jira_cli_command)
-		.with_context(|| format!("unable to get ticket details for {jira_ticket}"))?;
-
-	// Parse the output
-	parse_from_json_str::<JiraTicketDetails>(jira_ticket_json.as_str())
-		.with_context(|| "deserialising from JSON failed")
+	run_command(jira_cli_command)
+		.with_context(|| format!("unable to get ticket details for {jira_ticket}"))
 }

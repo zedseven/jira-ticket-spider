@@ -3,36 +3,40 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct JiraTicketDetails {
-	pub key:    String,
-	pub fields: JiraTicketDetailsFields,
+pub struct JiraTicketDetails<'a> {
+	pub key:    &'a str,
+	#[serde(borrow)]
+	pub fields: JiraTicketDetailsFields<'a>,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct JiraTicketDetailsFields {
-	pub summary:     String,
-	#[serde(rename = "issuelinks")]
-	pub issue_links: Vec<JiraTicketDetailsIssueLink>,
+pub struct JiraTicketDetailsFields<'a> {
+	pub summary:     &'a str,
+	#[serde(borrow, rename = "issuelinks")]
+	pub issue_links: Vec<JiraTicketDetailsIssueLink<'a>>,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct JiraTicketDetailsIssueLink {
-	pub inward_issue:  Option<JiraTicketDetailsIssueLinkIssue>,
-	pub outward_issue: Option<JiraTicketDetailsIssueLinkIssue>,
-	pub r#type:        JiraTicketDetailsIssueLinkType,
+pub struct JiraTicketDetailsIssueLink<'a> {
+	#[serde(borrow)]
+	pub inward_issue:  Option<JiraTicketDetailsIssueLinkIssue<'a>>,
+	#[serde(borrow)]
+	pub outward_issue: Option<JiraTicketDetailsIssueLinkIssue<'a>>,
+	#[serde(borrow)]
+	pub r#type:        JiraTicketDetailsIssueLinkType<'a>,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct JiraTicketDetailsIssueLinkIssue {
-	pub key: String,
+pub struct JiraTicketDetailsIssueLinkIssue<'a> {
+	pub key: &'a str,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct JiraTicketDetailsIssueLinkType {
-	pub inward:  String,
-	pub outward: String,
+pub struct JiraTicketDetailsIssueLinkType<'a> {
+	pub inward:  &'a str,
+	pub outward: &'a str,
 }
