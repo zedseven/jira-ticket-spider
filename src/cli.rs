@@ -64,9 +64,11 @@ pub fn build_cli() -> Command {
 				.value_parser(NonEmptyStringValueParser::new()),
 		)
 		.arg(
-			Arg::new("status-colours")
+			Arg::new("show-statuses")
 				.short('s')
-				.long("status-colours")
+				.long("show-statuses")
+				.visible_alias("statuses")
+				.visible_alias("status-colours")
 				.visible_alias("status-colors")
 				.num_args(0..=1)
 				.default_value("false")
@@ -87,7 +89,7 @@ pub fn build_cli() -> Command {
 				.action(ArgAction::Set)
 				.value_name("TRUE/FALSE")
 				.value_parser(value_parser!(bool))
-				.requires("status-colours")
+				.requires("show-statuses")
 				.help("Use dark mode colours for status colour-coding."),
 		)
 }

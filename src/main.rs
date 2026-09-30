@@ -136,7 +136,7 @@ fn main() -> AnyhowResult<()> {
 		.copied()
 		.map(str::trim)
 		.collect::<Vec<_>>();
-	let status_colours = *matches.get_one::<bool>("status-colours").unwrap_or(&false);
+	let show_statuses = *matches.get_one::<bool>("show-statuses").unwrap_or(&false);
 	let dark_mode = *matches.get_one::<bool>("dark-mode").unwrap_or(&false);
 
 	// Crawl the tickets
@@ -183,7 +183,7 @@ fn main() -> AnyhowResult<()> {
 		url_prefix,
 		follow_link_types.as_slice(),
 		starting_jira_tickets.as_slice(),
-		status_colours,
+		show_statuses,
 		dark_mode,
 	);
 

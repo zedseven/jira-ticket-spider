@@ -17,7 +17,7 @@ pub fn print_plantuml(
 	url_prefix: Option<&str>,
 	follow_link_types: &[&str],
 	starting_jira_tickets: &[&str],
-	status_colours: bool,
+	show_statuses: bool,
 	dark_mode: bool,
 ) {
 	let jira_tickets_sorted = sorted_vec_from_iterator(jira_tickets.iter(), |(x, _), (y, _)| {
@@ -63,22 +63,28 @@ pub fn print_plantuml(
 	println!("' Tickets");
 
 	for (key, details) in jira_tickets_sorted {
-		let colour_code = if status_colours {
+		let colour_code = if show_statuses {
 			colour_type_to_colour(details.status.colour_type, dark_mode)
 		} else {
 			None
 		}
 		.map_or_else(String::new, |str| format!(" {str}"));
 
+		let status_line = if show_statuses {
+			format!("\\n\\n**Status:** //{}//", details.status.name.as_str())
+		} else {
+			String::new()
+		};
+
 		if let Some(url_prefix) = url_prefix {
 			println!(
-				"component \"[[{url_prefix}{key} {key}]]: {}\" as {}{colour_code}",
+				"component \"[[{url_prefix}{key} {key}]]: {}{status_line}\" as {}{colour_code}",
 				escape_summary(details.summary.as_str()),
 				escape_key(key)
 			);
 		} else {
 			println!(
-				"component \"{key}: {}\" as {}{colour_code}",
+				"component \"{key}: {}{status_line}\" as {}{colour_code}",
 				escape_summary(details.summary.as_str()),
 				escape_key(key)
 			);
