@@ -1,7 +1,7 @@
 //! Provides the CLI for the program.
 
 // Uses
-use clap::{Arg, ArgAction, Command, builder::NonEmptyStringValueParser};
+use clap::{Arg, ArgAction, Command, builder::NonEmptyStringValueParser, value_parser};
 
 // Constants
 const HELP_TEMPLATE: &str = "\
@@ -62,5 +62,32 @@ pub fn build_cli() -> Command {
 					 names are checked against these values.",
 				)
 				.value_parser(NonEmptyStringValueParser::new()),
+		)
+		.arg(
+			Arg::new("status-colours")
+				.short('s')
+				.long("status-colours")
+				.visible_alias("status-colors")
+				.num_args(0..=1)
+				.default_value("false")
+				.default_missing_value("true")
+				.action(ArgAction::Set)
+				.value_name("TRUE/FALSE")
+				.value_parser(value_parser!(bool))
+				.help("Colour-code tickets by their statuses."),
+		)
+		.arg(
+			Arg::new("dark-mode")
+				.short('d')
+				.long("dark-mode")
+				.visible_alias("dark")
+				.num_args(0..=1)
+				.default_value("false")
+				.default_missing_value("true")
+				.action(ArgAction::Set)
+				.value_name("TRUE/FALSE")
+				.value_parser(value_parser!(bool))
+				.requires("status-colours")
+				.help("Use dark mode colours for status colour-coding."),
 		)
 }

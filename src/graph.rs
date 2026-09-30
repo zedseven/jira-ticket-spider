@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use chrono::Utc;
 
 use crate::{
+	ColourType,
 	JiraTicket,
 	JiraTicketRelationship,
 	should_visit_link_type,
@@ -16,6 +17,8 @@ pub fn print_plantuml(
 	url_prefix: Option<&str>,
 	follow_link_types: &[&str],
 	starting_jira_tickets: &[&str],
+	status_colours: bool,
+	dark_mode: bool,
 ) {
 	let jira_tickets_sorted = sorted_vec_from_iterator(jira_tickets.iter(), |(x, _), (y, _)| {
 		let x_clean = sortable_jira_ticket(x.as_str());
@@ -60,15 +63,22 @@ pub fn print_plantuml(
 	println!("' Tickets");
 
 	for (key, details) in jira_tickets_sorted {
+		let colour_code = if status_colours {
+			colour_type_to_colour(details.status.colour_type, dark_mode)
+		} else {
+			None
+		}
+		.map_or_else(String::new, |str| format!(" {str}"));
+
 		if let Some(url_prefix) = url_prefix {
 			println!(
-				"component \"[[{url_prefix}{key} {key}]]: {}\" as {}",
+				"component \"[[{url_prefix}{key} {key}]]: {}\" as {}{colour_code}",
 				escape_summary(details.summary.as_str()),
 				escape_key(key)
 			);
 		} else {
 			println!(
-				"component \"{key}: {}\" as {}",
+				"component \"{key}: {}\" as {}{colour_code}",
 				escape_summary(details.summary.as_str()),
 				escape_key(key)
 			);
@@ -106,4 +116,21 @@ fn escape_summary(summary: &str) -> String {
 	const ESCAPED_QUOTE: &str = "<U+0022>";
 
 	summary.replace('"', ESCAPED_QUOTE)
+}
+
+/// Maps the API colour types to the colours that Jira uses.
+fn colour_type_to_colour(colour_type: ColourType, dark_mode: bool) -> Option<&'static str> {
+	if dark_mode {
+		match colour_type {
+			ColourType::Default => None,
+			ColourType::InProgress => Some("#579dff"),
+			ColourType::Success => Some("#4bce97"),
+		}
+	} else {
+		match colour_type {
+			ColourType::Default => None,
+			ColourType::InProgress => Some("#0c66e4"),
+			ColourType::Success => Some("#1f845a"),
+		}
+	}
 }

@@ -13,8 +13,25 @@ pub struct JiraTicketDetails<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct JiraTicketDetailsFields<'a> {
 	pub summary:     &'a str,
+	#[serde(borrow)]
+	pub status:      JiraTicketDetailsStatus<'a>,
 	#[serde(borrow, rename = "issuelinks")]
 	pub issue_links: Vec<JiraTicketDetailsIssueLink<'a>>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct JiraTicketDetailsStatus<'a> {
+	pub name:            &'a str,
+	#[serde(borrow)]
+	pub status_category: JiraTicketDetailsStatusCategory<'a>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct JiraTicketDetailsStatusCategory<'a> {
+	#[serde(rename = "colorName")]
+	pub colour_name: &'a str,
 }
 
 #[derive(Deserialize, Debug)]

@@ -54,19 +54,57 @@ use serde_json::from_str as parse_from_json_str;
 use crate::{
 	cli::build_cli,
 	graph::print_plantuml,
-	parsing::{JiraTicketDetails, JiraTicketDetailsIssueLink},
+	parsing::{JiraTicketDetails, JiraTicketDetailsIssueLink, JiraTicketDetailsStatus},
 	util::run_command,
 };
 
 #[derive(Debug)]
 struct JiraTicket {
 	summary: String,
+	status:  JiraTicketStatus,
 }
 
 impl From<&JiraTicketDetails<'_>> for JiraTicket {
 	fn from(jira_ticket_details: &JiraTicketDetails<'_>) -> Self {
 		Self {
 			summary: jira_ticket_details.fields.summary.to_owned(),
+			status:  (&jira_ticket_details.fields.status).into(),
+		}
+	}
+}
+
+#[derive(Debug)]
+struct JiraTicketStatus {
+	name:        String,
+	colour_type: ColourType,
+}
+
+impl From<&JiraTicketDetailsStatus<'_>> for JiraTicketStatus {
+	fn from(jira_ticket_details_status: &JiraTicketDetailsStatus<'_>) -> Self {
+		Self {
+			name:        jira_ticket_details_status.name.to_owned(),
+			colour_type: jira_ticket_details_status
+				.status_category
+				.colour_name
+				.into(),
+		}
+	}
+}
+
+#[derive(Default, Debug, Clone, Copy)]
+enum ColourType {
+	#[default]
+	Default,
+	InProgress,
+	Success,
+}
+
+impl From<&str> for ColourType {
+	fn from(colour_name: &str) -> Self {
+		match colour_name {
+			"inprogress" => Self::InProgress,
+			"success" => Self::Success,
+			_ => Self::Default, // "default" | "uncategorized"
 		}
 	}
 }
@@ -98,6 +136,8 @@ fn main() -> AnyhowResult<()> {
 		.copied()
 		.map(str::trim)
 		.collect::<Vec<_>>();
+	let status_colours = *matches.get_one::<bool>("status-colours").unwrap_or(&false);
+	let dark_mode = *matches.get_one::<bool>("dark-mode").unwrap_or(&false);
 
 	// Crawl the tickets
 	let mut jira_tickets = HashMap::new();
@@ -143,6 +183,8 @@ fn main() -> AnyhowResult<()> {
 		url_prefix,
 		follow_link_types.as_slice(),
 		starting_jira_tickets.as_slice(),
+		status_colours,
+		dark_mode,
 	);
 
 	Ok(())
