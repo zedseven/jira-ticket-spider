@@ -1,6 +1,8 @@
 // Uses
 use std::collections::{HashMap, HashSet};
 
+use chrono::Utc;
+
 use crate::{
 	JiraTicket,
 	JiraTicketRelationship,
@@ -13,6 +15,7 @@ pub fn print_plantuml(
 	relationships: &HashSet<JiraTicketRelationship>,
 	url_prefix: Option<&str>,
 	follow_link_types: &[&str],
+	starting_jira_tickets: &[&str],
 ) {
 	let jira_tickets_sorted = sorted_vec_from_iterator(jira_tickets.iter(), |(x, _), (y, _)| {
 		let x_clean = sortable_jira_ticket(x.as_str());
@@ -38,6 +41,22 @@ pub fn print_plantuml(
 	println!("skinparam wrapWidth 150");
 	println!("skinparam componentStyle rectangle");
 	println!();
+
+	println!("' Metadata");
+	println!("' Generated: {}", Utc::now().format("%+"));
+
+	println!("' Starting Jira Tickets:");
+	for starting_jira_ticket in starting_jira_tickets {
+		println!("' - {starting_jira_ticket}");
+	}
+
+	println!("' Follow Link Types:");
+	for follow_link_type in follow_link_types {
+		println!("' - \"{follow_link_type}\"");
+	}
+
+	println!();
+
 	println!("' Tickets");
 
 	for (key, details) in jira_tickets_sorted {

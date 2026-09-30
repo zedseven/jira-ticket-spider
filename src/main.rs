@@ -96,6 +96,10 @@ fn main() -> AnyhowResult<()> {
 		.expect("Clap provides a default value")
 		.collect::<Vec<_>>();
 
+	let starting_jira_tickets_ref = starting_jira_tickets
+		.iter()
+		.map(|s| s.as_str())
+		.collect::<Vec<_>>();
 	let follow_link_types_ref = follow_link_types
 		.iter()
 		.map(|s| s.trim())
@@ -141,6 +145,7 @@ fn main() -> AnyhowResult<()> {
 		&relationships,
 		url_prefix.map(String::as_str),
 		follow_link_types_ref.as_slice(),
+		starting_jira_tickets_ref.as_slice(),
 	);
 
 	Ok(())
