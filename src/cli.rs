@@ -57,8 +57,11 @@ pub fn build_cli() -> Command {
 				.num_args(1)
 				.default_values(["blocks", "has to be done before", "is depended on by"])
 				.action(ArgAction::Append)
-				.value_name("OUTWARD_LINK_TYPE")
-				.help("The issue link types to follow when crawling.")
+				.value_name("LINK_TYPE")
+				.help(
+					"The issue link types to follow when crawling. Inward and outward issue link \
+					 names are checked against these values.",
+				)
 				.value_parser(NonEmptyStringValueParser::new()),
 		)
 }
