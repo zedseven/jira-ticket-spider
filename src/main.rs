@@ -87,34 +87,28 @@ fn main() -> AnyhowResult<()> {
 	let matches = cli_definition.get_matches();
 
 	let starting_jira_tickets = matches
-		.get_many::<String>("starting-jira-ticket")
+		.get_many::<&str>("starting-jira-ticket")
 		.expect("Clap ensures at least one argument is provided")
+		.copied()
 		.collect::<Vec<_>>();
-	let url_prefix = matches.get_one::<String>("url-prefix");
+	let url_prefix = matches.get_one::<&str>("url-prefix").copied();
 	let follow_link_types = matches
-		.get_many::<String>("follow-link-types")
+		.get_many::<&str>("follow-link-types")
 		.expect("Clap provides a default value")
-		.collect::<Vec<_>>();
-
-	let starting_jira_tickets_ref = starting_jira_tickets
-		.iter()
-		.map(|s| s.as_str())
-		.collect::<Vec<_>>();
-	let follow_link_types_ref = follow_link_types
-		.iter()
-		.map(|s| s.trim())
+		.copied()
+		.map(str::trim)
 		.collect::<Vec<_>>();
 
 	// Crawl the tickets
 	let mut jira_tickets = HashMap::new();
 	let mut relationships = HashSet::new();
 
-	for starting_jira_ticket in starting_jira_tickets {
+	for starting_jira_ticket in &starting_jira_tickets {
 		visit_jira_ticket(
 			&mut jira_tickets,
 			&mut relationships,
-			follow_link_types_ref.as_slice(),
-			starting_jira_ticket.as_str(),
+			follow_link_types.as_slice(),
+			starting_jira_ticket,
 		)?;
 	}
 
@@ -143,9 +137,9 @@ fn main() -> AnyhowResult<()> {
 	print_plantuml(
 		&jira_tickets,
 		&relationships,
-		url_prefix.map(String::as_str),
-		follow_link_types_ref.as_slice(),
-		starting_jira_tickets_ref.as_slice(),
+		url_prefix,
+		follow_link_types.as_slice(),
+		starting_jira_tickets.as_slice(),
 	);
 
 	Ok(())
